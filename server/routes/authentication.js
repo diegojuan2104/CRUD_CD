@@ -1,11 +1,9 @@
 const express = require('express');
 const router = express.Router();
 
-const { verifyToken, logIn } = require('./autenticacion');
-/*Enruta todos los controladores,creando los endpoints.*/
+const { logIn } = require('../controllers/authentication.controller');
+
 router
-	//Middelware
-	.use(verifyToken)
 
 	.post('/login', logIn);
 

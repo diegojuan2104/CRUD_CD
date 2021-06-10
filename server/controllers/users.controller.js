@@ -36,9 +36,9 @@ let postUser = async (req, res) => {
   try {
     const info = req.body;
 
-    if ((await getUser(id)).length > 0) {
+    if ((await getUser(info.id)).length > 0) {
+      console.log("IN");
       res.status(404).send("This user already exists");
-      return;
     }
 
     validarInformacion(info);
@@ -57,11 +57,11 @@ let postUser = async (req, res) => {
     await _pg.executeQuery(sql, values);
     res.status(200).send("User created");
   } catch (error) {
-    res.status(404).send(error);
+    console.log(error);
+    res.status(400).send(error);
   }
 };
 
-//PUT: Actualiza un User
 let putUser = async (req, res) => {
   try {
     if ((await getUser(id)).length == 0) {
@@ -90,7 +90,6 @@ let putUser = async (req, res) => {
   }
 };
 
-//DELETE: Elimina un User
 let deleteUser = async (req, res) => {
   try {
     const info = req.body;
