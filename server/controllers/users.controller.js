@@ -3,31 +3,40 @@ const _pg = new pgService();
 
 let getAllUsers = async (req, res) => {
   try {
-    let sql = "SELECT * FROM users order by id";
+    if (req.user.rol === 3) {
+      res.status(403).send("User not allowed to do this petition");
+      return;
+    }
+
+    let sql = `SELECT users.id, users.email, id_types.type as id_type, users.name, users.lastname, users.phone,roles.type as rol FROM users inner join roles on users.rol = roles.id inner
+    join id_types on users.id_type = id_types.id`;
     const data = await _pg.executeQuery(sql);
     res.status(200).send(data.rows);
   } catch (error) {
-    res.status(404).send(error);
+    res.status(500).send(error);
   }
 };
 
-let getUserById = async (req, res) => {
+let getAuthenticatedUser = async (req, res) => {
   try {
-    const id = req.params.id;
-    if ((await getUser(id)).length == 0) {
+    const email = req.user.email;
+    const data = await getUserByEmail(email);
+    if (data.length == 0) {
       res.status(404).send("User not founded");
       return;
     }
-    res.status(200).send(data.rows);
+    res.status(200).send(data[0]);
   } catch (error) {
     console.log(error);
-    res.status(404).send(error);
+    res.status(500).send(error);
   }
 };
 
-let getUser = async (id) => {
-  let sql = "SELECT * FROM users WHERE id = $1 order by id";
-  let values = [id];
+let getUserByEmail = async (email) => {
+  console.log(email);
+  let sql = `SELECT users.id, users.email, id_types.type as id_type, users.name, users.lastname, users.phone,roles.type as rol FROM users inner join roles on users.rol = roles.id inner
+  join id_types on users.id_type = id_types.id where users.email = $1`;
+  let values = [email];
   const data = await _pg.executeQuery(sql, values);
   return data.rows;
 };
@@ -35,13 +44,17 @@ let getUser = async (id) => {
 let postUser = async (req, res) => {
   try {
     const info = req.body;
-
-    if ((await getUser(info.id)).length > 0) {
-      console.log("IN");
-      res.status(404).send("This user already exists");
+    if (!validation(info)) {
+      return res.status(400).json({
+        msg: "Must fill all the fields",
+      });
+    }
+    if ((await getUserByEmail(info.email)).length > 0) {
+      return res.status(400).json({
+        msg: "This user already exists",
+      });
     }
 
-    validarInformacion(info);
     let sql =
       "INSERT INTO users(id,id_type,name,lastname,phone,email,rol,password) VALUES ($1,$2,$3,$4,$5,$6,$7,md5($8));";
     let values = [
@@ -58,45 +71,54 @@ let postUser = async (req, res) => {
     res.status(200).send("User created");
   } catch (error) {
     console.log(error);
-    res.status(400).send(error);
+    res.status(500).send("Internal error");
   }
 };
 
 let putUser = async (req, res) => {
   try {
-    if ((await getUser(id)).length == 0) {
-      res.status(404).send("User not founded");
+    if (req.user.rol === 3) {
+      res.status(403).send("User not allowed to do this petition");
       return;
     }
-    const info = req.body;
-    const id = req.params.id;
-    let sql = `UPDATE users SET 
-            id_type = $1, name = $2,lastname = $3, 
-            phone = $4, email = $5, rol = $6 
-            WHERE id = $7;`;
+    const info = req.body.user;
+ 
+    if ((await getUserByEmail(info.email)).length == 0) {
+      res.status(404).send("User not found");
+      return;
+    }
+    
+    let sql = `UPDATE public.users
+    SET id=$1, id_type=$2, name=$3, lastname=$4,rol=$5, phone=$6
+    WHERE email = $7`;
     let values = [
+      info.id,
       info.id_type,
       info.name,
-      info.last_name,
+      info.lastname,
+      info.rol,
       info.phone,
       info.email,
-      info.rol,
-      id,
     ];
-    await _pg.executeQuery(sql, values);
+    const val = await _pg.executeQuery(sql, values);
     res.status(200).send("User updated");
   } catch (error) {
-    res.status(404).send(error);
+    console.log(error)
+    res.status(500).send("Internal error");
   }
 };
 
 let deleteUser = async (req, res) => {
   try {
-    const info = req.body;
-    const id = req.params.id;
-    console.log(info);
-    let sql = "DELETE FROM users WHERE id = $1;";
-    let values = [id];
+    if (req.user.rol === 3 || req.user.rol === 2) {
+      res.status(403).send("User not allowed to do this petition");
+      return;
+    }
+
+    const email = req.params.id;
+    console.log(email);
+    let sql = "DELETE FROM users WHERE email = $1;";
+    let values = [email];
     await _pg.executeQuery(sql, values);
     res.status(200).send("User Deleted");
   } catch (error) {
@@ -104,7 +126,7 @@ let deleteUser = async (req, res) => {
   }
 };
 
-let validarInformacion = (info) => {
+let validation = (info) => {
   if (
     !info.id_type ||
     !info.id ||
@@ -115,11 +137,16 @@ let validarInformacion = (info) => {
     !info.rol ||
     !info.password
   ) {
-    throw {
-      ok: false,
-      mensaje: "Must fill all the fields",
-    };
+    return false;
+  } else {
+    return true;
   }
 };
 
-module.exports = { getAllUsers, postUser, putUser, deleteUser, getUserById };
+module.exports = {
+  getAllUsers,
+  postUser,
+  putUser,
+  deleteUser,
+  getAuthenticatedUser,
+};
