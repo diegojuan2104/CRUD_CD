@@ -255,7 +255,7 @@ export default {
           })
           .catch((error) => {
             console.log(error);
-            alert(error.response.data.msg);
+            alert("error");
           });
       } else {
         this.updateUser(model);
@@ -276,7 +276,7 @@ export default {
         })
         .catch((error) => {
           console.log(error);
-          alert(error.response.data.msg);
+          alert("error");
         });
     },
 
@@ -295,7 +295,7 @@ export default {
           })
           .catch((error) => {
             console.log(error);
-            alert(error.response.data.msg);
+            alert("error");
           });
       }
     },

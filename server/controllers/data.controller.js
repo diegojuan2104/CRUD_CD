@@ -13,7 +13,6 @@ let getDocumentTypes = async (req, res) => {
     }
 };
 
-//GET: obtiene todos los tipos roles que existen
 
 let getRoles = async (req, res) => {
     try {

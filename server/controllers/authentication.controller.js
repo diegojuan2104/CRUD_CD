@@ -2,14 +2,6 @@ const jwt = require("jsonwebtoken");
 const pgService = require("../services/pg");
 const _pg = new pgService();
 
-let validation = (info) => {
-  if (!info.email || !info.password) {
-    return false;
-  } else {
-    return true;
-  }
-};
-
 let logIn = async (req, res) => {
   try {
     const info = req.body;
@@ -50,6 +42,14 @@ let logIn = async (req, res) => {
   } catch (error) {
     console.log(error);
     res.status(500).send({ ok: false, msg: "Internal error" });
+  }
+};
+
+let validation = (info) => {
+  if (!info.email || !info.password) {
+    return false;
+  } else {
+    return true;
   }
 };
 
